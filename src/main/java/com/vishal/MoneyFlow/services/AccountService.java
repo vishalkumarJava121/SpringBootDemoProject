@@ -12,6 +12,6 @@ public interface AccountService {
     public double checkBalance(String accountNumber);
 
     AccountResponse createAccount(AccountRequest request);
-    public void updateAccountBalance(String accountNumber, Double newBalance) throws AccountNotFoundException;
-    public AccountResponse getAccount(String accountNumber) throws AccountNotFoundException;
+    public void updateAccountBalance(String accountNumber, Double newBalance) ;
+    public AccountResponse getAccount(String accountNumber) ;
 }

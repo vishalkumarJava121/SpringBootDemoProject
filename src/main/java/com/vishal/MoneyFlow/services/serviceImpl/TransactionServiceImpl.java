@@ -35,7 +35,6 @@ public class TransactionServiceImpl implements TransactionService {
     private NotificationService notificationService;
 
     @Transactional
-
     @Override
     public TransactionResponse processTransaction(TransactionRequest request) throws AccountNotFoundException {
         Account account = accountRepository.findByAccountNumber(request.getAccountNumber())

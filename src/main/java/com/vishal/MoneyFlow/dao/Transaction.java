@@ -30,6 +30,9 @@ public class Transaction {
     @Column(name ="timestamp")
     private LocalDateTime timestamp;
 
+    @Version
+    private Integer version;
+
     public Transaction(Account account, TransactionType type, Double amount, LocalDateTime now) {
         this.timestamp = now;
         this.account = account;

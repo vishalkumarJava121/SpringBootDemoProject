@@ -22,7 +22,6 @@ public class AccountRequest  {
     @NotBlank(message = "Aaadhar Number  is required")
     private String aadharNumber;
 
-    @NotBlank(message = "Deposit Amount is Required")
     private Double depositAmount;
 
 

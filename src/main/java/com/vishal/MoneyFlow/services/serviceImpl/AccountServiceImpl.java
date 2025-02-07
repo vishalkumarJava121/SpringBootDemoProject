@@ -5,15 +5,16 @@ import com.vishal.MoneyFlow.dao.Account;
 import com.vishal.MoneyFlow.dao.Transaction;
 import com.vishal.MoneyFlow.dto.AccountRequest;
 import com.vishal.MoneyFlow.dto.AccountResponse;
-import com.vishal.MoneyFlow.dto.TransactionResponse;
 import com.vishal.MoneyFlow.exception.AccountAlreadyExistException;
 import com.vishal.MoneyFlow.exception.AccountNotFoundException;
 import com.vishal.MoneyFlow.respository.AccountRepository;
 import com.vishal.MoneyFlow.services.AccountService;
+import jakarta.persistence.Version;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -56,11 +57,16 @@ public class AccountServiceImpl implements AccountService {
                 List<Transaction> transactionList = new ArrayList<>();
                 transactionList.add(transaction);
                 newAccount.setTransactions(transactionList);
-                accountRepository.save(newAccount);
+                try {
+                    accountRepository.save(newAccount);
+                }catch (OptimisticLockingFailureException e) {
+                    throw new RuntimeException("Update failed due to concurrent modification. Please retry.");
+                }
+
             }
         }catch (Exception ex)
         {
-            ex.printStackTrace();
+            throw new RuntimeException("Error While creating New  Account");
         }
         return new AccountResponse("Account Created", request.getAccountHolderName(), request.getDepositAmount());
 
@@ -68,19 +74,33 @@ public class AccountServiceImpl implements AccountService {
 
 
     @Cacheable(value = "accounts", key = "#accountNumber")
-    public AccountResponse getAccount(String accountNumber) throws AccountNotFoundException {
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found"));
-        return new AccountResponse(account.getAccountNumber(), account.getAccountHolderName(), account.getBalance());
+    public AccountResponse getAccount(String accountNumber)  {
+        System.out.println("Fetching from DB...");
+        Optional<Account> account = accountRepository.findByAccountNumber(accountNumber);
+
+        if (account.isEmpty()) {
+            throw new AccountNotFoundException(" Account Number doesn't exist ::" + accountNumber );
+        }else {
+            return new AccountResponse(account.get().getAccountNumber(), account.get().getAccountHolderName(), account.get().getBalance());
+        }
     }
 
 
 
+    @Version
     @CacheEvict(value = "accounts", key = "#accountNumber")
-    public void updateAccountBalance(String accountNumber, Double newBalance) throws AccountNotFoundException {
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found"));
-        account.setBalance(newBalance);
-        accountRepository.save(account);
+    public void updateAccountBalance(String accountNumber, Double newBalance)  {
+        System.out.println("updateAccountBalance from DB...");
+        Optional<Account> account = accountRepository.findByAccountNumber(accountNumber);
+        if (account.isEmpty()) {
+            throw new AccountNotFoundException(" Account Number doesn't exist ::" + accountNumber);
+        }else {
+            account.get().setBalance(newBalance);
+            try {
+                accountRepository.save(account.get());
+            }catch (OptimisticLockingFailureException e) {
+                throw new RuntimeException("Update failed due to concurrent modification. Please retry.");
+            }
+        }
     }
 }
