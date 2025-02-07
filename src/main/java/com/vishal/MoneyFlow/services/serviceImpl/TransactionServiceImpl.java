@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -55,7 +56,8 @@ public class TransactionServiceImpl implements TransactionService {
             transactionRepository.save(transaction);
 
             // Asynchronously send a notification
-            notificationService.sendTransactionAlert(account.getAccountNumber(), request.getType(), request.getAmount());
+            CompletableFuture<String>  result = notificationService.sendTransactionAlert(account.getAccountNumber(), request.getType(), request.getAmount());
+            System.out.println("Notification Sent ::"+result.get());
         }catch (Exception ex) {
             retryTransaction(request);
         }
